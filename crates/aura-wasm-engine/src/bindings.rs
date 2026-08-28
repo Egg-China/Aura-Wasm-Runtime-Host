@@ -5,4 +5,5 @@
 wasmtime::component::bindgen!({
     path: "../../sdk/wit",
     world: "aura-plugin-v1",
+    imports: { default: trappable },
 });

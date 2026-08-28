@@ -7,7 +7,9 @@ rust-version.workspace = true
 
 [dependencies]
 aura-bridge-value = { path = "../aura-bridge-value" }
+aura-runtime-protocol = { path = "../aura-runtime-protocol" }
 wasmtime = { version = "48.0.1", features = ["component-model", "cranelift", "runtime"] }
+wasmtime-wasi = "48.0.1"
 
 [dev-dependencies]
 tempfile = "3.23.0"

@@ -8,6 +8,15 @@ use wasmtime::{Config, Engine};
 
 /// Generated bindings for `aura:runtime@0.1.0`.
 pub mod bindings;
+mod bridge;
+/// Fixed first-beta execution limits.
+pub mod config;
+/// Typed Component Model lifecycle execution.
+pub mod plugin;
+/// Wasmtime store construction.
+pub mod store;
+/// Constrained WASI 0.2 construction.
+pub mod wasi;
 
 /// Creates the common Wasmtime engine used by isolated payload processes.
 pub fn create_engine() -> wasmtime::Result<Engine> {
