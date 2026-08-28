@@ -1,0 +1,18 @@
+[package]
+name = "aura-wasm-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aura-wasm-engine = { path = "../aura-wasm-engine" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+
+[dev-dependencies]
+tempfile = "3.23.0"
+wat = "1.244.0"
+
+[lints]
+workspace = true

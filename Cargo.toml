@@ -2,6 +2,8 @@
 members = [
     "crates/aura-bridge-value",
     "crates/aura-runtime-protocol",
+    "crates/aura-wasm-engine",
+    "crates/aura-wasm-host",
 ]
 resolver = "3"
 

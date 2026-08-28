@@ -1,0 +1,18 @@
+[package]
+name = "aura-wasm-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aura-bridge-value = { path = "../aura-bridge-value" }
+wasmtime = { version = "48.0.1", features = ["component-model", "cranelift", "runtime"] }
+
+[dev-dependencies]
+tempfile = "3.23.0"
+wat = "1.244.0"
+wit-parser = "0.244.0"
+
+[lints]
+workspace = true

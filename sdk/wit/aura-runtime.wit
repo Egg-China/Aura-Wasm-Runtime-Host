@@ -1,0 +1,25 @@
+package aura:runtime@0.1.0;
+
+interface bridge {
+  invoke: func(operation: string, input: list<u8>) -> result<list<u8>, string>;
+  retain-handle: func(object-id: u64, generation: u64) -> result<_, string>;
+  release-handle: func(object-id: u64, generation: u64) -> result<_, string>;
+}
+
+interface plugin {
+  record plugin-error {
+    code: string,
+    message: string,
+  }
+
+  load: func() -> result<_, plugin-error>;
+  enable: func() -> result<_, plugin-error>;
+  invoke: func(operation: string, input: list<u8>, callback-id: u64) -> result<list<u8>, plugin-error>;
+  disable: func() -> result<_, plugin-error>;
+  unload: func() -> result<_, plugin-error>;
+}
+
+world aura-plugin-v1 {
+  import bridge;
+  export plugin;
+}
