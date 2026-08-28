@@ -1,0 +1,9 @@
+{
+  "name": "aura-wasm-runtime-sdk-tools",
+  "version": "0.1.0-beta.1",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "yaml": "2.9.0"
+  }
+}

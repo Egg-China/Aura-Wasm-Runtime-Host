@@ -44,7 +44,7 @@ Assert-Equal $declaration.bridgeAbi 1 'providesRuntimes.bridgeAbi'
 if ((@($declaration.abis) -join ',') -cne '1' -or
     (@($declaration.executionModes) -join ',') -cne 'isolated' -or
     (@($declaration.features) -join ',') -cne 'bridge,hooks,native') {
-    throw 'runtime declaration does not match JavaScript ABI 1 isolated Bridge contract'
+    throw 'runtime declaration does not match Wasm ABI 1 isolated Bridge contract'
 }
 
 Write-Output "Validated $Path"
