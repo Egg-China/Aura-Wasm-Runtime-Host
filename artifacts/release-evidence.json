@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "tag": "v0.1.0-beta.1",
+    "url": "https://github.com/Egg-China/Aura-Wasm-Runtime-Host/releases/tag/v0.1.0-beta.1",
+    "prerelease": true,
+    "publishedAt": "2026-08-28T20:39:38Z",
+    "sourceCommit": "05d1f0a71131211d36e6172ddeba1ef1329c4ea5"
+  },
+  "build": {
+    "hostRunId": "33206734371",
+    "releaseRunId": "33208690800",
+    "auraRepository": "Egg-China/Aura-Launcher",
+    "auraCommit": "c2d7ec3201825308c360c1a41aeafebcd7145e74",
+    "auraRunId": "33196503483",
+    "auraJarSha256": "2153be49da69c055232872c95a171091a526be24357b6f2b82b5af8f6d2a67c3"
+  },
+  "verification": {
+    "source": "anonymous-public-download",
+    "verifiedAt": "2026-08-28T20:44:09Z",
+    "checksumRecords": 9,
+    "nplArtifacts": 6,
+    "sdkEntries": 9,
+    "witSha256": "f9a35a58b3e7f7449a46f87b4d303f4ea7f35135275a1627a8d612ce648fdde8",
+    "sbomFormat": "CycloneDX",
+    "sbomSpecVersion": "1.6",
+    "wasmtimeVersion": "48.0.1"
+  },
+  "assets": [
+    {
+      "name": "aura-wasm-runtime-sdk-v0.1.0-beta.1.zip",
+      "sha256": "d5695aae709ee90be1904b6e4639f6bd7d18fcaba3b2d970bf49f08feb52e181",
+      "size": 7237
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-linux-arm64.npl",
+      "sha256": "5ef69b0dd6d0597e755e6bde62382daf5db51efa0f076881e3928fbaeb55ce6f",
+      "size": 8676516
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-linux-x64.npl",
+      "sha256": "e20d5b291d740912b640b54abc8a82ffeb5488dacfcd9cb88a2a6a0f870fd85b",
+      "size": 8855475
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-macos-arm64.npl",
+      "sha256": "59d4bb84749985fb06930b1420d8014802945f624decb3977baaba268de779ed",
+      "size": 7648881
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-macos-x64.npl",
+      "sha256": "2c03589981eefadae115c45ce855c6bb11a08953ec6ba4f464963c1f5dde05e1",
+      "size": 8390953
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-windows-arm64.npl",
+      "sha256": "35bba912de666191d04282eb8437b73c3a71315360d9997672fa1b126fc6214e",
+      "size": 6535615
+    },
+    {
+      "name": "dev.hmclce.runtime.wasm-host-v0.1.0-beta.1-windows-x64.npl",
+      "sha256": "590c620df9f9578e7801e31c90c8892ff9d811c47063713ea7cee0e265b932a7",
+      "size": 7627176
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "sha256": "1aa27d4f25322d539b6b5c5d05dbd479e91a488894726ecaf0ea12ca9f75b88f",
+      "size": 1045
+    },
+    {
+      "name": "wasm-runtime-host-manifest.json",
+      "sha256": "f9249ec57ede043ec246b9e5e46eae53e1f2f89c4ae872245ecb13e67a68d8b3",
+      "size": 1689
+    },
+    {
+      "name": "wasm-runtime-host.cdx.json",
+      "sha256": "3aea7efa8661191ceeb3762c730c7d8cff396e422a040fb090fff17820fe345f",
+      "size": 115623
+    }
+  ]
+}
