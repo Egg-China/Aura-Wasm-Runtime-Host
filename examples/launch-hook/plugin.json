@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 5,
+  "id": "dev.hmclce.example.wasm.launch-hook",
+  "name": "Aura Wasm Game Launch Hook Plugin",
+  "version": "1.0.0",
+  "description": "Isolated WebAssembly example that transforms the before-game-launch plan.",
+  "author": "Aura Launcher Community",
+  "type": "java",
+  "runtime": "wasm",
+  "abi": 1,
+  "platforms": ["windows-x64", "windows-arm64", "linux-x64", "linux-arm64", "macos-x64", "macos-arm64"],
+  "entrypoint": "aura-wasm.json",
+  "executionMode": "isolated",
+  "runtimeProvider": "dev.hmclce.runtime.wasm-host",
+  "dependencies": [],
+  "permissions": ["launcher-hook"],
+  "requiredPermissions": ["launcher-hook"],
+  "hooks": ["before-game-launch"],
+  "patches": [],
+  "launcherVersion": ">=27.1-0-next"
+}

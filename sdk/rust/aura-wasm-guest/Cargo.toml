@@ -1,0 +1,9 @@
+[package]
+name = "aura-wasm-guest"
+version = "0.1.0-beta.1"
+edition = "2024"
+license = "GPL-3.0-or-later"
+rust-version = "1.97.1"
+publish = false
+
+[workspace]

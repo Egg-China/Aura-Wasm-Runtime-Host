@@ -1,0 +1,23 @@
+[package]
+name = "launch-hook"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+aura-wasm-guest = { path = "../../sdk/rust/aura-wasm-guest" }
+wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "aura:launch-hook-example"
+
+[package.metadata.component.target]
+path = "../../sdk/wit"
+world = "aura-plugin-v1"

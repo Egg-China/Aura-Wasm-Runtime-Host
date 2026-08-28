@@ -3,6 +3,7 @@
 /.gradle/
 /host-plugin/.gradle/
 /host-plugin/build/
+/sdk/rust/aura-wasm-guest/target/
 /sdk/node_modules/
 /artifacts/
 *.class

@@ -4,7 +4,9 @@ members = [
     "crates/aura-runtime-protocol",
     "crates/aura-wasm-engine",
     "crates/aura-wasm-host",
+    "examples/launch-hook",
 ]
+exclude = ["sdk/rust/aura-wasm-guest"]
 resolver = "3"
 
 [workspace.package]

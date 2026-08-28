@@ -71,6 +71,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "aura-wasm-guest"
+version = "0.1.0-beta.1"
+
+[[package]]
 name = "aura-wasm-host"
 version = "0.1.0-beta.1"
 dependencies = [
@@ -911,6 +915,14 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "launch-hook"
+version = "0.1.0-beta.1"
+dependencies = [
+ "aura-wasm-guest",
+ "wit-bindgen-rt",
 ]
 
 [[package]]
@@ -2286,6 +2298,15 @@ checksum = "3f3fd376f71958b862e7afb20cfe5a22830e1963462f3a17f49d82a6c1d1f42d"
 dependencies = [
  "bitflags",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "wit-bindgen-rt"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "653c85dd7aee6fe6f4bded0d242406deadae9819029ce6f7d258c920c384358a"
+dependencies = [
+ "bitflags",
 ]
 
 [[package]]

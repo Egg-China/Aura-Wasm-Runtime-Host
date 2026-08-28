@@ -34,6 +34,8 @@ impl WasmPlugin {
         wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
         AuraPluginV1::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
         let mut store = create_store(&engine, package_root, bridge, plugin_id, session)?;
+        store.set_fuel(FUEL_PER_CALL)?;
+        store.set_epoch_deadline(1);
         let bindings = AuraPluginV1::instantiate(&mut store, component, &linker)?;
         Ok(Self {
             engine,
