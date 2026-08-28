@@ -1,0 +1,7 @@
+Aura Wasm Runtime Host includes Wasmtime 48.0.1 and its transitive Rust dependencies.
+
+Wasmtime is available under the Apache License 2.0 with LLVM exception
+(Apache-2.0 WITH LLVM-exception) and the MIT license. Source code and the complete upstream license
+texts are available at https://github.com/bytecodealliance/wasmtime/tree/v48.0.1.
+
+The release CycloneDX SBOM inventories the exact transitive crate versions shipped in each build.

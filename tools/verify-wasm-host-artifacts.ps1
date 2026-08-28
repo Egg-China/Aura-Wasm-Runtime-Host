@@ -1,0 +1,264 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string] $ArtifactManifest,
+
+    [Parameter(Mandatory = $true)]
+    [string] $PackageDirectory,
+
+    [string] $ContractRoot = ''
+)
+
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$expectedVersion = '0.1.0-beta.1'
+$expectedAuraRepository = 'Egg-China/Aura-Launcher'
+$expectedAuraCommit = 'c2d7ec3201825308c360c1a41aeafebcd7145e74'
+$expectedAuraRun = '33196503483'
+$expectedAuraJarHash = '2153be49da69c055232872c95a171091a526be24357b6f2b82b5af8f6d2a67c3'
+$expectedWitHash = 'f9a35a58b3e7f7449a46f87b4d303f4ea7f35135275a1627a8d612ce648fdde8'
+$platforms = @(
+    'windows-x64',
+    'windows-arm64',
+    'linux-x64',
+    'linux-arm64',
+    'macos-x64',
+    'macos-arm64'
+)
+
+function Assert-Condition {
+    param([bool] $Condition, [string] $Message)
+    if (-not $Condition) { throw $Message }
+}
+
+function Assert-ExactProperties {
+    param([object] $Value, [string[]] $Expected, [string] $Label)
+    $actual = @($Value.PSObject.Properties.Name | Sort-Object)
+    $expectedSorted = @($Expected | Sort-Object)
+    Assert-Condition (-not (Compare-Object $actual $expectedSorted -SyncWindow 0)) `
+        "$Label contains missing or unknown fields"
+}
+
+function Get-ZipEntryBytes {
+    param([System.IO.Compression.ZipArchiveEntry] $Entry)
+    $input = $Entry.Open()
+    $output = [System.IO.MemoryStream]::new()
+    try {
+        $input.CopyTo($output)
+        return $output.ToArray()
+    } finally {
+        $output.Dispose()
+        $input.Dispose()
+    }
+}
+
+function Assert-GuestContract {
+    param([string] $Root)
+    $wit = Join-Path $Root 'sdk/wit/aura-runtime.wit'
+    $guestManifest = Join-Path $Root 'sdk/rust/aura-wasm-guest/Cargo.toml'
+    $guestLibrary = Join-Path $Root 'sdk/rust/aura-wasm-guest/src/lib.rs'
+    $notices = Join-Path $Root 'THIRD-PARTY-NOTICES.txt'
+    Assert-Condition (Test-Path -LiteralPath $wit -PathType Leaf) 'WIT contract is missing'
+    Assert-Condition (Test-Path -LiteralPath $guestManifest -PathType Leaf) 'Rust guest SDK manifest is missing'
+    Assert-Condition (Test-Path -LiteralPath $guestLibrary -PathType Leaf) 'Rust guest SDK library is missing'
+    Assert-Condition (Test-Path -LiteralPath $notices -PathType Leaf) 'Wasmtime notices are missing'
+    $witHash = (Get-FileHash -LiteralPath $wit -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Condition ($witHash -ceq $expectedWitHash) 'WIT contract SHA-256 is invalid'
+
+    $metadataJson = & cargo metadata --manifest-path $guestManifest --no-deps --format-version 1
+    Assert-Condition ($LASTEXITCODE -eq 0) 'Rust guest SDK Cargo metadata is invalid'
+    $metadata = $metadataJson | ConvertFrom-Json
+    $packages = @($metadata.packages)
+    Assert-Condition ($packages.Count -eq 1) 'Rust guest SDK must contain exactly one package'
+    $guest = $packages[0]
+    Assert-Condition (
+        $guest.name -ceq 'aura-wasm-guest' -and
+        $guest.version -ceq $expectedVersion -and
+        $guest.license -ceq 'GPL-3.0-or-later' -and
+        $guest.rust_version -ceq '1.97.1' -and
+        @($guest.publish).Count -eq 0
+    ) 'Rust guest SDK Cargo metadata is invalid'
+
+    $noticeText = Get-Content -LiteralPath $notices -Raw
+    Assert-Condition (
+        $noticeText.Contains('Wasmtime 48.0.1') -and
+        $noticeText.Contains('Apache-2.0 WITH LLVM-exception') -and
+        $noticeText.Contains('MIT')
+    ) 'Wasmtime notices are incomplete'
+}
+
+function Assert-BinaryArchitecture {
+    param([byte[]] $Bytes, [string] $Platform)
+    if ($Platform.StartsWith('windows-')) {
+        Assert-Condition ($Bytes.Length -ge 0x88 -and $Bytes[0] -eq 0x4d -and $Bytes[1] -eq 0x5a) `
+            "$Platform executable architecture is not a valid PE image"
+        $header = [BitConverter]::ToInt32($Bytes, 0x3c)
+        Assert-Condition ($header -ge 0 -and $header + 6 -le $Bytes.Length) `
+            "$Platform executable architecture has an invalid PE header"
+        Assert-Condition (
+            $Bytes[$header] -eq 0x50 -and $Bytes[$header + 1] -eq 0x45 -and
+            $Bytes[$header + 2] -eq 0 -and $Bytes[$header + 3] -eq 0
+        ) "$Platform executable architecture has an invalid PE signature"
+        $actual = [BitConverter]::ToUInt16($Bytes, $header + 4)
+        $expected = if ($Platform.EndsWith('-x64')) { [uint16]0x8664 } else { [uint16]0xaa64 }
+        Assert-Condition ($actual -eq $expected) "$Platform executable architecture does not match its platform"
+        return
+    }
+
+    if ($Platform.StartsWith('linux-')) {
+        Assert-Condition (
+            $Bytes.Length -ge 20 -and $Bytes[0] -eq 0x7f -and $Bytes[1] -eq 0x45 -and
+            $Bytes[2] -eq 0x4c -and $Bytes[3] -eq 0x46 -and $Bytes[4] -eq 2 -and $Bytes[5] -eq 1
+        ) "$Platform executable architecture is not a little-endian ELF64 image"
+        $actual = [BitConverter]::ToUInt16($Bytes, 18)
+        $expected = if ($Platform.EndsWith('-x64')) { [uint16]62 } else { [uint16]183 }
+        Assert-Condition ($actual -eq $expected) "$Platform executable architecture does not match its platform"
+        return
+    }
+
+    Assert-Condition (
+        $Bytes.Length -ge 8 -and $Bytes[0] -eq 0xcf -and $Bytes[1] -eq 0xfa -and
+        $Bytes[2] -eq 0xed -and $Bytes[3] -eq 0xfe
+    ) "$Platform executable architecture is not a little-endian Mach-O 64 image"
+    $actual = [BitConverter]::ToUInt32($Bytes, 4)
+    $expected = if ($Platform.EndsWith('-x64')) { [uint32]0x01000007 } else { [uint32]0x0100000c }
+    Assert-Condition ($actual -eq $expected) "$Platform executable architecture does not match its platform"
+}
+
+function Assert-PluginManifest {
+    param([System.IO.Compression.ZipArchiveEntry] $Entry, [string] $Platform)
+    $stream = $Entry.Open()
+    $reader = [System.IO.StreamReader]::new(
+        $stream,
+        [System.Text.UTF8Encoding]::new($false, $true),
+        $false
+    )
+    try {
+        $plugin = $reader.ReadToEnd() | ConvertFrom-Json
+    } finally {
+        $reader.Dispose()
+        $stream.Dispose()
+    }
+    Assert-Condition ($plugin.schemaVersion -eq 5) 'NPL plugin.json must use schema v5'
+    Assert-Condition ($plugin.id -ceq 'dev.hmclce.runtime.wasm-host') 'NPL plugin ID is invalid'
+    Assert-Condition ($plugin.version -ceq $expectedVersion) 'NPL plugin version is invalid'
+    Assert-Condition ($plugin.pluginKind -ceq 'runtime-provider') 'NPL plugin kind is invalid'
+    Assert-Condition ($plugin.entrypoint -ceq 'dev.hmclce.runtime.wasm.WasmRuntimeHostPlugin') `
+        'NPL Java Provider entrypoint is invalid'
+    Assert-Condition ($plugin.launcherVersion -ceq '>=27.1-0-next') 'NPL launcherVersion is invalid'
+    Assert-Condition ($Platform -cin @($plugin.platforms)) 'NPL plugin.json does not declare its platform'
+    Assert-Condition ((@($plugin.permissions) -join ',') -ceq 'native-code') 'NPL permissions are invalid'
+    Assert-Condition ((@($plugin.requiredPermissions) -join ',') -ceq 'native-code') `
+        'NPL required permissions are invalid'
+    $declarations = @($plugin.providesRuntimes)
+    Assert-Condition ($declarations.Count -eq 1) 'NPL must provide exactly one runtime'
+    $runtime = $declarations[0]
+    Assert-Condition (
+        $runtime.runtime -ceq 'wasm' -and
+        (@($runtime.abis) -join ',') -ceq '1' -and
+        $runtime.bridgeAbi -eq 1 -and
+        (@($runtime.executionModes) -join ',') -ceq 'isolated' -and
+        (@($runtime.features) -join ',') -ceq 'bridge,hooks,native'
+    ) 'NPL Wasm runtime declaration is invalid'
+}
+
+function Assert-Package {
+    param([string] $Package, [string] $Platform)
+    $executable = if ($Platform.StartsWith('windows-')) {
+        'aura-wasm-host.exe'
+    } else {
+        'aura-wasm-host'
+    }
+    $required = @(
+        'LICENSE',
+        'THIRD-PARTY-NOTICES.txt',
+        'libs/aura-wasm-runtime-host-plugin.jar',
+        "native/$Platform/$executable",
+        'plugin.json'
+    ) | Sort-Object
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($Package)
+    try {
+        $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+        $files = @()
+        foreach ($entry in $archive.Entries) {
+            $name = $entry.FullName
+            Assert-Condition (-not [string]::IsNullOrWhiteSpace($name)) 'NPL contains a blank ZIP entry'
+            Assert-Condition (
+                -not $name.Contains('\') -and -not $name.StartsWith('/') -and
+                -not $name.Contains(':') -and -not $name.Contains([char]0)
+            ) "NPL contains an unsafe ZIP entry: $name"
+            $segments = @($name.TrimEnd('/').Split('/'))
+            Assert-Condition (-not ($segments | Where-Object { $_ -ceq '' -or $_ -ceq '.' -or $_ -ceq '..' })) `
+                "NPL contains an unsafe ZIP entry: $name"
+            Assert-Condition ($seen.Add($name)) "NPL contains duplicate ZIP entry: $name"
+            if (-not $name.EndsWith('/')) { $files += $name }
+        }
+        Assert-Condition (-not (Compare-Object @($files | Sort-Object) $required -SyncWindow 0)) `
+            'NPL file entries do not match the exact Host package layout'
+
+        $pluginEntry = $archive.GetEntry('plugin.json')
+        Assert-Condition ($null -ne $pluginEntry) 'NPL is missing plugin.json'
+        Assert-PluginManifest -Entry $pluginEntry -Platform $Platform
+
+        $executableEntry = $archive.GetEntry("native/$Platform/$executable")
+        Assert-Condition ($null -ne $executableEntry) 'NPL is missing the process Host executable'
+        Assert-BinaryArchitecture -Bytes (Get-ZipEntryBytes -Entry $executableEntry) -Platform $Platform
+        $noticeEntry = $archive.GetEntry('THIRD-PARTY-NOTICES.txt')
+        Assert-Condition ($null -ne $noticeEntry) 'NPL is missing Wasmtime notices'
+        $noticeText = [System.Text.Encoding]::UTF8.GetString((Get-ZipEntryBytes -Entry $noticeEntry))
+        Assert-Condition ($noticeText.Contains('Wasmtime 48.0.1')) 'NPL Wasmtime notices are invalid'
+    } finally {
+        $archive.Dispose()
+    }
+}
+
+$manifestPath = (Resolve-Path -LiteralPath $ArtifactManifest).Path
+$packageRoot = (Resolve-Path -LiteralPath $PackageDirectory).Path
+$resolvedContractRoot = if ([string]::IsNullOrWhiteSpace($ContractRoot)) {
+    (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+} else {
+    (Resolve-Path -LiteralPath $ContractRoot).Path
+}
+Assert-Condition (Test-Path -LiteralPath $manifestPath -PathType Leaf) 'Artifact manifest must be a file'
+Assert-Condition (Test-Path -LiteralPath $packageRoot -PathType Container) 'Package directory must be a directory'
+Assert-GuestContract -Root $resolvedContractRoot
+$manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+Assert-ExactProperties -Value $manifest -Expected @('schemaVersion', 'version', 'aura', 'artifacts') `
+    -Label 'artifact manifest'
+Assert-Condition ($manifest.schemaVersion -eq 1) 'Artifact manifest schemaVersion must be 1'
+Assert-Condition ($manifest.version -ceq $expectedVersion) 'Artifact manifest version is invalid'
+Assert-ExactProperties -Value $manifest.aura `
+    -Expected @('repository', 'commit', 'runId', 'jarSha256') -Label 'artifact manifest Aura provenance'
+Assert-Condition ($manifest.aura.repository -ceq $expectedAuraRepository) 'Aura repository provenance is invalid'
+Assert-Condition ($manifest.aura.commit -ceq $expectedAuraCommit) 'Aura commit provenance is invalid'
+Assert-Condition ([string]$manifest.aura.runId -ceq $expectedAuraRun) 'Aura run provenance is invalid'
+Assert-Condition ($manifest.aura.jarSha256 -ceq $expectedAuraJarHash) 'Aura JAR SHA-256 provenance is invalid'
+
+$artifacts = @($manifest.artifacts)
+Assert-Condition ($artifacts.Count -ge 1 -and $artifacts.Count -le $platforms.Count) `
+    'Artifact manifest must contain between one and six packages'
+$seenPlatforms = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+foreach ($artifact in $artifacts) {
+    Assert-ExactProperties -Value $artifact -Expected @('platform', 'package', 'sha256', 'size') `
+        -Label 'artifact record'
+    $platform = [string]$artifact.platform
+    Assert-Condition ($platform -cin $platforms) "Unsupported Wasm Host platform: $platform"
+    Assert-Condition ($seenPlatforms.Add($platform)) "Duplicate artifact platform: $platform"
+    $packageName = [string]$artifact.package
+    $expectedName = "dev.hmclce.runtime.wasm-host-v$expectedVersion-$platform.npl"
+    Assert-Condition (
+        [System.IO.Path]::GetFileName($packageName) -ceq $packageName -and $packageName -ceq $expectedName
+    ) "Artifact package name is invalid for $platform"
+    $packagePath = Join-Path $packageRoot $packageName
+    Assert-Condition (Test-Path -LiteralPath $packagePath -PathType Leaf) `
+        "Artifact package does not exist: $packageName"
+    $actualHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Condition ($actualHash -ceq [string]$artifact.sha256) "$platform NPL SHA-256 does not match"
+    Assert-Condition ((Get-Item -LiteralPath $packagePath).Length -eq [int64]$artifact.size) `
+        "$platform NPL size does not match"
+    Assert-Package -Package $packagePath -Platform $platform
+}
+
+Write-Output "Verified $($artifacts.Count) Wasm Host artifact(s) from Aura run $expectedAuraRun"
