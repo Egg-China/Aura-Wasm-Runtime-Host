@@ -74,10 +74,13 @@ dependencies = [
 name = "aura-wasm-host"
 version = "0.1.0-beta.1"
 dependencies = [
+ "aura-bridge-value",
+ "aura-runtime-protocol",
  "aura-wasm-engine",
  "serde",
  "serde_json",
  "tempfile",
+ "wasmtime",
  "wat",
 ]
 
