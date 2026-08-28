@@ -1,0 +1,9 @@
+/target/
+/.ci/
+/.gradle/
+/host-plugin/.gradle/
+/host-plugin/build/
+/sdk/node_modules/
+/artifacts/
+*.class
+*.jar
