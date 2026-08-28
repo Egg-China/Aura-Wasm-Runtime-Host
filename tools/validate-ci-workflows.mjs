@@ -92,4 +92,9 @@ const metadata = JSON.parse(execFileSync("cargo", ["metadata", "--format-version
 const wasmtime = metadata.packages.find((entry) => entry.name === "wasmtime");
 assert(wasmtime?.version === "48.0.1", "Cargo.lock must resolve Wasmtime 48.0.1 exactly");
 
+const witAttribute = execFileSync("git", ["check-attr", "eol", "--", "sdk/wit/aura-runtime.wit"], {
+  encoding: "utf8",
+}).trim();
+assert(witAttribute.endsWith(": eol: lf"), "WIT checkout bytes must use LF on every runner");
+
 process.stdout.write("Wasm CI workflow contracts passed\n");
