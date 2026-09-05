@@ -31,6 +31,21 @@ impl Guest for LaunchHook {
         if STATE.load(Ordering::Acquire) != ENABLED {
             return Err(plugin_error("invalid-state", "plugin is not enabled"));
         }
+        if operation == "aura.patch.v1" {
+            let request = AuraValue::from_wire(&input).map_err(bridge_error)?;
+            let fields = require_map(request, "Patch request must be a map")?;
+            require_integer(&fields, "schemaVersion", 1)?;
+            // Observe only: drop invocation-local references when this callback returns.
+            return AuraValue::Map(vec![
+                ("schemaVersion".to_owned(), AuraValue::Integer(1)),
+                (
+                    "action".to_owned(),
+                    AuraValue::String("unchanged".to_owned()),
+                ),
+            ])
+            .to_wire()
+            .map_err(bridge_error);
+        }
         if operation != "hook.before-game-launch" {
             return Err(plugin_error("invalid-argument", "unsupported operation"));
         }
@@ -134,7 +149,7 @@ fn require_integer(
     } else {
         Err(plugin_error(
             "invalid-argument",
-            "invalid Hook contract version",
+            "invalid callback contract version",
         ))
     }
 }

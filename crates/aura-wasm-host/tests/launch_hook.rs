@@ -105,6 +105,51 @@ fn launch_hook_example_replaces_the_structured_launch_plan() {
     plugin.unload().expect("call unload").expect("guest unload");
 }
 
+#[test]
+fn launch_hook_example_observes_patch_without_changing_the_result() {
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let engine = create_engine().expect("create engine");
+    let component = load_component(
+        &engine,
+        &repository.join("target/wasm32-wasip1/release/launch_hook.wasm"),
+    )
+    .expect("build real sample component");
+    let mut plugin = WasmPlugin::instantiate(
+        engine,
+        &repository.join("examples/launch-hook"),
+        &component,
+        Arc::new(NoBridge),
+        59,
+        61,
+    )
+    .expect("instantiate sample");
+    plugin.load().expect("load transport").expect("load sample");
+    plugin
+        .enable()
+        .expect("enable transport")
+        .expect("enable sample");
+    let input = Value::Map(vec![("schemaVersion".into(), Value::Integer(1))]);
+    let output = plugin
+        .invoke("aura.patch.v1", &input.to_wire().unwrap(), 0)
+        .expect("Patch transport")
+        .expect("Patch callback");
+    assert_eq!(
+        Value::from_wire(&output).unwrap(),
+        Value::Map(vec![
+            ("schemaVersion".into(), Value::Integer(1)),
+            ("action".into(), Value::String("unchanged".into())),
+        ])
+    );
+    plugin
+        .disable()
+        .expect("disable transport")
+        .expect("disable sample");
+    plugin
+        .unload()
+        .expect("unload transport")
+        .expect("unload sample");
+}
+
 struct NoBridge;
 
 impl BridgeTransport for NoBridge {

@@ -6,7 +6,7 @@ plugins { java }
 repositories { mavenCentral() }
 
 val auraJar = System.getenv("AURA_JAR")?.let(::file)
-    ?: file("../.ci/aura/Aura-Launcher-27.1.dev-c2d7ec3-next.jar")
+    ?: file("../.ci/aura/Aura-Launcher-27.1.dev-636b06a-next.jar")
 require(auraJar.isFile) { "Set AURA_JAR to the exact Aura Launcher Next Shadow JAR" }
 
 dependencies {
@@ -17,16 +17,22 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+val processHost = providers.environmentVariable("AURA_WASM_PROCESS_HOST")
+val component = providers.environmentVariable("AURA_WASM_COMPONENT")
+val nativePlatform = providers.environmentVariable("AURA_WASM_PLATFORM")
+
 tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
-tasks.withType<Test>().configureEach { useJUnitPlatform() }
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    processHost.orNull?.let { systemProperty("aura.wasm.processHost", it) }
+    component.orNull?.let { systemProperty("aura.wasm.component", it) }
+    systemProperty("aura.wasm.launchHookSample", file("../examples/launch-hook").absolutePath)
+}
 tasks.withType<AbstractArchiveTask>().configureEach {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
 }
 tasks.jar { archiveBaseName.set("aura-wasm-runtime-host-plugin") }
-
-val processHost = providers.environmentVariable("AURA_WASM_PROCESS_HOST")
-val nativePlatform = providers.environmentVariable("AURA_WASM_PLATFORM")
 
 tasks.register<Zip>("packageNpl") {
     dependsOn(tasks.jar)
